@@ -6,6 +6,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand
 
 # 1. Sozlamalar
 TOKEN = os.getenv("BOT_TOKEN", "8521448875:AAFJGG3HNOjPvGapB1BGmc2f0euXYKi32s8")
@@ -35,7 +36,7 @@ def get_admin_keyboard():
     )
     return markup
 
-# 🛍 BOSH MENYU (REPLY - SKRINSHOTDAGI KABI)
+# 🛍 BOSH MENYU (REPLY)
 def get_customer_keyboard(is_admin=False):
     keyboard_buttons = [
         [types.KeyboardButton(text="👕 Ustki kiyimlar"), types.KeyboardButton(text="👖 Shim va shortilar")],
@@ -46,24 +47,32 @@ def get_customer_keyboard(is_admin=False):
         
     return types.ReplyKeyboardMarkup(keyboard=keyboard_buttons, resize_keyboard=True)
 
-# 👤 JINSNI TANLASH MENYUSI (REPLY - ORQAGA TUGMASI BILAN)
+# 👤 JINSNI TANLASH MENYUSI (REPLY)
 def get_gender_keyboard():
     markup = types.ReplyKeyboardMarkup(
         keyboard=[
             [types.KeyboardButton(text="🚺 Ayollar uchun"), types.KeyboardButton(text=" Erkaklar uchun")],
             [types.KeyboardButton(text="👶 Bolalar uchun")],
-            [types.KeyboardButton(text="↩️ Orqaga orqaga qaytish")] # Aynan siz aytgan tugma!
+            [types.KeyboardButton(text="↩️ Orqaga orqaga qaytish")]
         ],
         resize_keyboard=True
     )
     return markup
 
-# ↩️ FAQAT ORQAGA QAYTISH TUGMASI (PARAMETRLAR BOSQICHI UCHUN)
+# ↩️ FAQAT ORQAGA QAYTISH TUGMASI
 def get_back_only_keyboard():
     return types.ReplyKeyboardMarkup(
         keyboard=[[types.KeyboardButton(text="↩️ Orqaga orqaga qaytish")]],
         resize_keyboard=True
     )
+
+# 🚀 1. BOTGA BUYRUQLARNI JOYLASH (MENU BUTTONS)
+async def set_bot_commands(bot: Bot):
+    commands = [
+        BotCommand(command="start", description="Botni qayta ishga tushirish 🔄"),
+        BotCommand(command="help", description="Yordam va qo'llanma ❓"),
+    ]
+    await bot.set_my_commands(commands)
 
 # ----------------- HANDLERS -----------------
 
@@ -72,13 +81,25 @@ async def start_handler(message: types.Message, state: FSMContext):
     await state.clear() 
     if message.chat.id == ADMIN_ID:
         admin_matn = (
-            "👑 **Xush kelibsiz, Hurmatli Direktor!**\n\n"
+            "👑 *Xush kelibsiz, Hurmatli Direktor!*\n\n"
             "Siz platformaning bosh boshqaruv paneliga kirdingiz.\n"
             "Quyidagi tugmalar orqali savdo markazini nazorat qiling:"
         )
         await message.answer(admin_matn, parse_mode="Markdown", reply_markup=get_admin_keyboard())
     else:
         await show_customer_menu(message, state)
+
+# HELP BUYRUG'I
+@dp.message(Command("help"))
+async def help_handler(message: types.Message):
+    help_text = (
+        "❓ *Botdan qanday foydalaniladi?*\n\n"
+        "1️⃣ Bosh menyudan o'zingizga kerakli kiyim bo'limini tanlang.\n"
+        "2️⃣ Kim uchun xarid qilayotganingizni belgilang.\n"
+        "3️⃣ Bo'y va vazningizni kiriting.\n\n"
+        "✨ Tizim sizga eng ideal o'lchamni avtomat hisoblab beradi!"
+    )
+    await message.answer(help_text, parse_mode="Markdown")
 
 @dp.message(F.text == "🛍 Xaridor rejimiga o'tish")
 async def admin_to_customer(message: types.Message, state: FSMContext):
@@ -88,8 +109,8 @@ async def admin_to_customer(message: types.Message, state: FSMContext):
 async def show_customer_menu(message: types.Message, state: FSMContext):
     is_admin = (message.chat.id == ADMIN_ID)
     premium_matn = (
-        "✨ **Salom! Mukammal uslub olamiga xush kelibsiz!**\n\n"
-        "👇 **Xaridni boshlash uchun quyidagi bo'limlardan birini tanlang:**"
+        "✨ *Salom! Mukammal uslub olamiga xush kelibsiz!*\n\n"
+        "👇 _Xaridni boshlash uchun quyidagi bo'limlardan birini tanlang:_"
     )
     await message.answer(text=premium_matn, parse_mode="Markdown", reply_markup=get_customer_keyboard(is_admin))
     await state.set_state(ShoppingState.category)
@@ -98,9 +119,8 @@ async def show_customer_menu(message: types.Message, state: FSMContext):
 async def back_to_admin_panel(message: types.Message, state: FSMContext):
     if message.chat.id == ADMIN_ID:
         await state.clear()
-        await message.answer("👑 **Direktor paneliga qaytdingiz!**", parse_mode="Markdown", reply_markup=get_admin_keyboard())
+        await message.answer("👑 *Direktor paneliga qaytdingiz!*", parse_mode="Markdown", reply_markup=get_admin_keyboard())
 
-# 🛑 ↩️ HAR QANDAY BOSQICHDA ORQAGA BOSILGANDA BOSH MENYUGA QAYTARISH
 @dp.message(F.text == "↩️ Orqaga orqaga qaytish")
 async def global_back_handler(message: types.Message, state: FSMContext):
     await state.clear()
@@ -123,19 +143,20 @@ async def process_gender(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     category = user_data['category']
     
+    # Bu yerda raqam kiritish misollariga fon (inline code block) berildi: `26.5` kabi
     if category == "👟 Oyoq kiyimlar":
-        await message.answer("👟 **Oyoq kiyim bo'limi**\n\nIltimos, oyoq kaftingiz uzunligini santimetrda kiriting (masalan: `26.5`):", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
+        await message.answer("👟 *Oyoq kiyim bo'limi*\n\nIltimos, oyoq kaftingiz uzunligini santimetrda kiriting (masalan: `26.5`):", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
         await state.set_state(ShoppingState.foot_size)
     elif category == "🩲 Ichki kiyimlar":
-        await message.answer("🩲 **Ichki kiyimlar bo'limi**\n\nIltimos, hozirgi vazningizni kiriting (kg hisobida, masalan: `70`):", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
+        await message.answer("🩲 *Ichki kiyimlar bo'limi*\n\nIltimos, hozirgi vazningizni kiriting (kg hisobida, masalan: `70`):", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
         await state.set_state(ShoppingState.weight_only)
     else:
         if message.text == "👶 Bolalar uchun":
-            await message.answer("👶 **Bolalar kiyimi bo'limi**\n\nIltimos, bolaning bo'yini kiriting (sm hisobida, masalan: `95`):", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
+            await message.answer("👶 *Bolalar kiyimi bo'limi*\n\nIltimos, bolaning bo'yini kiriting (sm hisobida, masalan: `95`):", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
             await state.set_state(ShoppingState.child_height)
         else:
             katalog = "ustki kiyimingiz" if category == "👕 Ustki kiyimlar" else "shimingiz"
-            await message.answer(f"Tanlagan {katalog} sizga ideal o'tirishi uchun:\n\n👇 **Bo'yingizni kiriting (sm):**", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
+            await message.answer(f"Tanlagan {katalog} sizga ideal o'tirishi uchun:\n\n👇 *Bo'yingizni kiriting (sm):*", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
             await state.set_state(ShoppingState.adult_height)
 
 # PARAMETRLAR VA HISOB-KITOB
@@ -171,7 +192,7 @@ async def get_adult_height(message: types.Message, state: FSMContext):
     try:
         height = int(message.text)
         await state.update_data(height=height)
-        await message.answer("👇 **Endi esa vazningizni kiriting (kg):**", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
+        await message.answer("👇 *Endi esa vazningizni kiriting (kg):*", parse_mode="Markdown", reply_markup=get_back_only_keyboard())
         await state.set_state(ShoppingState.adult_weight)
     except ValueError:
         await message.answer("⚠️ Iltimos, bo'yingizni faqat raqamda kiriting:", reply_markup=get_back_only_keyboard())
@@ -204,13 +225,14 @@ async def show_receipt(message: types.Message, state: FSMContext, size, params):
         resize_keyboard=True
     )
     
+    # Natija qismidagi tavsiya etilgan o'lcham fon (kod ko'rinishi) ichiga olindi: `XXL` kabi
     summary = (
-        f"📋 ━━━━ **BUYURTMA CHEKI** ━━━━\n\n"
-        f"🗂 **Bo'lim:** {category}\n"
-        f"👤 **Kim uchun:** {gender}\n"
-        f"📏 **Kiritilgan parametr:** {params}\n"
+        f"📋 ━━━━ 🌟 *BUYURTMA CHEKI* 🌟 ━━━━\n\n"
+        f"🗂 *Bo'lim:* {category}\n"
+        f"👤 *Kim uchun:* {gender}\n"
+        f"📏 *Kiritilgan parametr:* {params}\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"✨ **Tavsiya etilgan o'lcham: {size}**\n\n"
+        f"✨ *Tavsiya etilgan o'lcham:* `{size}`\n\n"
         f"Ushbu o'lchamdagi mahsulotlarni ko'rishni istaysizmi?"
     )
     await message.answer(summary, parse_mode="Markdown", reply_markup=markup)
@@ -220,13 +242,14 @@ async def show_receipt(message: types.Message, state: FSMContext, size, params):
 async def restart_calculation(message: types.Message, state: FSMContext):
     await show_customer_menu(message, state)
 
-# STANDART XATOLIKLAR
 @dp.message()
 async def invalid_message(message: types.Message):
     await message.answer("⚠️ Iltimos, menyudagi tugmalardan foydalaning.")
 
 async def main():
-    print("Siz aytgan orqaga tugmasi 100% sozlangan bot ishlamoqda...")
+    # Buyruqlarni ro'yxatdan o'tkazamiz
+    await set_bot_commands(bot)
+    print("Buyruqlar va matn dizaynlari muvaffaqiyatli yuklandi...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
