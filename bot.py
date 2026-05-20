@@ -1,14 +1,16 @@
 import asyncio
 import logging
+import os  # <-- .env ichidagi o'zgaruvchilarni o'qish uchun kutubxona
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# 1. Bot sozlamalari
-TOKEN = "8521448875:AAFJGG3HNOjPvGapB1BGmc2f0euXYKi32s8"  # <-- BotFather bergan tokenni qo'ying
-ADMIN_ID = 8727214154                                    # <-- O'zingizning Telegram ID raqamingizni qo'ying
+# 1. Bot sozlamalarini xavfsiz o'qish
+# Tizimda BOT_TOKEN bo'lsa uni oladi, aks holda default (orqadagi) tokenni ishlatadi
+TOKEN = os.getenv("BOT_TOKEN", "8521448875:AAFJGG3HNOjPvGapB1BGmc2f0euXYKi32s8")
+ADMIN_ID = int(os.getenv("ADMIN_ID", 8727214154))
 
 # Loglarni sozlash
 logging.basicConfig(level=logging.INFO)
@@ -102,8 +104,6 @@ async def show_customer_menu(message: types.Message, state: FSMContext):
         "👇 **Sifatli xaridni hoziroq boshlang, bo'limni tanlang:**"
     )
     
-    # Unsplash to'g'ridan-to'g'ri rasm linki bo'lishi kerak, aks holda xatolik beradi. 
-    # Ishonchli ishlashi uchun hozircha oddiy message ko'rinishida yuboramiz. Agar rasm aniq bo'lsa answer_photo ga o'tkazasiz.
     await message.answer(text=premium_matn, parse_mode="Markdown", reply_markup=markup)
     await state.set_state(ShoppingState.category)
 
