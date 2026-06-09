@@ -11,7 +11,8 @@ import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # 1. SOZLAMALAR
-TOKEN = "YOUR_TOKEN"
+import os
+TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 8727214154
 CHIEF_CARD = "8600 1234 5678 9012"
 bot = Bot(token=TOKEN)
