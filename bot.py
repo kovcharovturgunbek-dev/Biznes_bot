@@ -11,16 +11,36 @@ import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # 1. SOZLAMALAR
-TOKEN = "YOUR_TOKEN"
+TOKEN = "8521448875:AAGWrgq6TGYjrsSnoXMuMzv8tGEbrCUJOks"
 ADMIN_ID = 8727214154
 
-logging.basicConfig(level=logging.INFO)
+CHIEF_CARD = "8600 1234 5678 9012"
 bot = Bot(token=TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
+dp = Dispatcher()
 scheduler = AsyncIOScheduler()
+ad_requests = {}
+pending_products = {}
 
-CHIEF_CARD = "8600 1404 8875 1234"
-PRODUCT_IMAGE_URL = "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&auto=format&fit=crop"
+# --- KLAVIATURALARNI YARATISH ---
+def get_admin_keyboard():
+    return types.ReplyKeyboardMarkup(
+        keyboard=[
+            [types.KeyboardButton(text="📊 Umumiy statistika"), types.KeyboardButton(text="👥 Sotuvchilar ro'yxati")],
+            [types.KeyboardButton(text="📥 Yangi mahsulotlar (AI)")],
+            [types.KeyboardButton(text="📈 Reklama Tekshiruvi")],
+            [types.KeyboardButton(text="🛍 Xaridor rejimiga o'tish")]
+        ],
+        resize_keyboard=True
+    )
+
+def get_admin_ad_keyboard():
+    return types.ReplyKeyboardMarkup(
+        keyboard=[
+            [types.KeyboardButton(text="📢 Reklama yuborish")],
+            [types.KeyboardButton(text="🔙 Bosh menyuga qaytish")]
+        ],
+        resize_keyboard=True
+    )
 
 # --- AI MODERATSIYA UCHUN HOLATLAR ---
 class AdminModeration(StatesGroup):
@@ -47,117 +67,126 @@ def check_content_safety(text):
     found = [word for word in forbidden_words if word in text.lower()]
     return found
 
-def get_admin_keyboard():
-    return types.ReplyKeyboardMarkup(
-        keyboard=[
-            [types.KeyboardButton(text="📊 Umumiy statistika"), types.KeyboardButton(text="👥 Sotuvchilar ro'yxati")],
-            [types.KeyboardButton(text="📥 Yangi mahsulotlar (AI)"), types.KeyboardButton(text="📢 Reklama yuborish")],
-            [types.KeyboardButton(text="📈 Reklama Tekshiruvi"), types.KeyboardButton(text="🛍 Xaridor rejimiga o'tish")]
-        ],
-        resize_keyboard=True
-    )
+# --- REKLAMA JARAYONI VA TEKSHIRUV (YAKUNIY) ---
 
-# --- REKLAMA TEKSHIRUVI (TUZATILGAN MANTIQ) ---
-@dp.message(F.text == "📈 Reklama Tekshiruvi")
-async def show_ad_moderation_panel(message: types.Message):
-    if message.chat.id == ADMIN_ID:
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Tasdiqlash (To'lovni kutish)", callback_data="approve_ad")],
-            [InlineKeyboardButton(text="❌ Rad etish", callback_data="reject_ad")]
-        ])
-        await message.answer("📈 <b>REKLAMA ARIZASI №1</b>\n📢 Kanal: @ModaUz_Admin\n💰 Narx: 50,000 UZS", parse_mode="HTML", reply_markup=kb)
-
-@dp.callback_query(F.data == "approve_ad")
-async def approve_ad_callback(callback: types.CallbackQuery):
-    await callback.message.edit_text("✅ Arizachi to'lovni amalga oshirishi uchun xabar yuborildi. Chek kutilyapti...")
-    await callback.answer("To'lov jarayoniga o'tildi!")
-
-@dp.callback_query(F.data == "reject_ad")
-async def reject_ad_callback(callback: types.CallbackQuery):
-    await callback.message.edit_text("❌ Reklama rad etildi.")
-    await callback.answer("Rad etildi.")
-
-# --- YANGI MAHSULOTLAR (AI NAZORATI) ---
 @dp.message(F.text == "📥 Yangi mahsulotlar (AI)")
-async def ai_product_check_start(message: types.Message, state: FSMContext):
-    if message.chat.id == ADMIN_ID:
-        product_name = "Kuzgi Erkaklar Kurtkasi"
-        store_name = "Zara Family"
-        price = "450,000 UZS"
-        
-        report = (
-            "🤖 <b>AI MAHSULOT NAZORATI VA TAHLILI</b>\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"🏢 <b>Do'kon:</b> {store_name}\n"
-            f"👕 <b>Mahsulot:</b> {product_name}\n"
-            f"💰 <b>Narxi:</b> {price}\n"
-            "🛡 <b>AI Kontent Tekshiruvi:</b> 🟢 TOZA (Sifatli)\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "📊 <b>AI Xulosasi:</b> Rasm formati va kiyim andozasi do'kon "
-            "talablariga 100% mos keladi. Katalogga qo'shish tavsiya etiladi."
-        )
-        
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Katalogga qo'shish", callback_data="confirm_upload")],
-            [InlineKeyboardButton(text="❌ Rad etish", callback_data="reject_upload")]
-        ])
-        
-        await message.answer(report, parse_mode="HTML", reply_markup=kb)
-        await state.set_state(AdminModeration.checking_product)
+async def show_new_products(message: types.Message):
+    if message.chat.id != ADMIN_ID: return
+    
+    if not pending_products:
+        await message.answer("📥 Hozircha tasdiqlash uchun yangi mahsulotlar yo'q.")
+    else:
+        for p_id, data in pending_products.items():
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"approve_prod_{p_id}")],
+                [InlineKeyboardButton(text="❌ Rad etish", callback_data=f"reject_prod_{p_id}")]
+            ])
+            text = (f"📦 <b>Yangi mahsulot:</b> {data['name']}\n"
+                    f"🏢 <b>Do'kon:</b> {data['shop_name']}\n"
+                    f"📝 <b>Tavsif:</b> {data['desc']}\n\n"
+                    "❓ Ushbu mahsulotni do'kon vitrinasiga qo'shamizmi?")
+            await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
-@dp.callback_query(F.data == "confirm_upload")
-async def confirm_upload(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("✅ Mahsulot katalogga muvaffaqiyatli qo'shildi!")
-    await state.clear()
+@dp.message(F.text == "📈 Reklama Tekshiruvi")
+async def enter_ad_management(message: types.Message):
+    if message.chat.id != ADMIN_ID: return
+    await message.answer("🛠 Reklama boshqaruviga o'tdingiz. Arizalar ro'yxati:", reply_markup=get_admin_ad_keyboard())
+    
+    if not ad_requests:
+        await message.answer("📋 Hozircha yangi reklama arizalari yo'q.")
+    else:
+        for user_id, data in ad_requests.items():
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"approve_{user_id}")],
+                [InlineKeyboardButton(text="❌ Rad etish", callback_data=f"reject_{user_id}")]
+            ])
+            caption = f"👤 Foydalanuvchi: {user_id}\n💰 Narx: 50,000 UZS\n\nReklama: {data['text']}"
+            if data['photo']:
+                await bot.send_photo(ADMIN_ID, data['photo'], caption=caption, reply_markup=kb)
+            else:
+                await bot.send_message(ADMIN_ID, caption, reply_markup=kb)
 
-@dp.callback_query(F.data == "reject_upload")
-async def reject_upload(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("❌ Mahsulot rad etildi.")
-    await state.clear()
+@dp.message(F.text == "🔙 Bosh menyuga qaytish")
+async def back_to_main_admin(message: types.Message):
+    await message.answer("👑 Direktor paneliga qaytdingiz.", reply_markup=get_admin_keyboard())
 
-# --- SOTUVCHILAR RO'YXATI (YANGILANGAN KO'RINISH) ---
-@dp.message(F.text == "👥 Sotuvchilar ro'yxati")
-async def show_partners_list(message: types.Message):
-    if message.chat.id == ADMIN_ID:
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚠️ Zara Family: Qarzdorlik! Ogohlantirish", callback_data="warn_zara")],
-            [InlineKeyboardButton(text="✅ Real Look: To'langan", callback_data="none")],
-            [InlineKeyboardButton(text="✅ Premium Sport: To'langan", callback_data="none")]
-        ])
-        await message.answer("👥 <b>HAMKOR SOTUVCHILAR (IJARA TIZIMI)</b>", parse_mode="HTML", reply_markup=kb)
-
-@dp.callback_query(F.data == "warn_zara")
-async def warn_seller(callback: types.CallbackQuery):
-    await callback.message.answer("📩 Ogohlantirish xati yuborildi. Zara Family shartnomasi 72 soat ichida to'lov bo'lmasa bekor qilinadi.")
-    scheduler.add_job(lambda: None, 'date', run_date=datetime.now() + timedelta(hours=72))
-
-# --- REKLAMA JARAYONI ---
 @dp.message(F.text == "📢 Reklama yuborish")
 async def ask_for_advertisement(message: types.Message, state: FSMContext):
-    if message.chat.id == ADMIN_ID:
-        await state.set_state(AdProcess.waiting_for_text)
-        await message.answer("📢 Reklama matingizni yuboring:")
+    await state.set_state(AdProcess.waiting_for_text)
+    await message.answer("📢 Reklama matni va (ixtiyoriy) rasmni yuboring:", reply_markup=get_back_only_keyboard())
+
+@dp.message(AdProcess.waiting_for_text, F.text == "↩️ Orqaga qaytish")
+@dp.message(AdProcess.waiting_for_payment, F.text == "↩️ Orqaga qaytish")
+async def cancel_ad(message: types.Message, state: FSMContext):
+    await state.clear()
+    kb = get_admin_keyboard() if message.chat.id == ADMIN_ID else get_customer_keyboard()
+    await message.answer("🚫 Reklama jarayoni bekor qilindi.", reply_markup=kb)
 
 @dp.message(AdProcess.waiting_for_text)
 async def process_ad_text(message: types.Message, state: FSMContext):
-    violations = check_content_safety(message.text)
+    text = message.text or message.caption
+    violations = check_content_safety(text)
     if violations:
         await message.answer(f"❌ Taqiqlangan so'zlar bor: {', '.join(violations)}")
         return
-    await state.update_data(ad_text=message.text)
-    await message.answer(f"✅ Matn qabul qilindi.\nNarxi: 50,000 UZS\nKarta: <code>{CHIEF_CARD}</code>\nTo'lovdan so'ng chekni yuboring.", parse_mode="HTML")
-    await state.set_state(AdProcess.waiting_for_payment)
+    
+    await state.update_data(ad_text=text, photo=message.photo[-1].file_id if message.photo else None)
+    
+    if message.chat.id == ADMIN_ID:
+        await message.answer("✅ Direktor, reklama tayyor. Barchaga tarqatilsinmi?", 
+                             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🚀 Tasdiqlash", callback_data="confirm_ad_admin")]]))
+    else:
+        await message.answer(f"✅ Matn qabul qilindi.\nNarxi: 50,000 UZS\nKarta: <code>{CHIEF_CARD}</code>\nTo'lovdan so'ng chekni yuboring.", 
+                             parse_mode="HTML", reply_markup=get_back_only_keyboard())
+        await state.set_state(AdProcess.waiting_for_payment)
 
 @dp.message(AdProcess.waiting_for_payment, F.photo)
 async def handle_payment(message: types.Message, state: FSMContext):
-    await message.answer("✅ Chek qabul qilindi. Admin tasdig'ini kuting.")
-    await bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption="To'lov cheki keldi. Endi tarqatishni tasdiqlaysizmi?", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✅ Yakuniy Tarqatish", callback_data="confirm_ad")]]))
+    user_data = await state.get_data()
+    ad_requests[message.chat.id] = {"text": user_data['ad_text'], "photo": message.photo[-1].file_id}
+    await message.answer("✅ Chek qabul qilindi. Admin tekshirishi uchun yuborildi.")
+    await state.clear()
 
-@dp.callback_query(F.data == "confirm_ad")
-async def confirm_ad(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_caption(caption="✅ To'lov tasdiqlandi. Reklama tarqatildi!")
-    await bot.send_message(ADMIN_ID, "📢 Reklama barchaga tarqatildi! Arizachiga xabar yuborildi.")
+@dp.callback_query(F.data.startswith("approve_"))
+async def approve_ad_admin(callback: types.CallbackQuery):
+    user_id = int(callback.data.split("_")[1])
+    await bot.send_message(user_id, "🎉 Tabriklaymiz! Reklamangiz tasdiqlandi va tarqatildi.")
+    await callback.message.edit_caption(caption="✅ Reklama tasdiqlandi!")
+    if user_id in ad_requests: del ad_requests[user_id]
+    await callback.answer("Tarqatildi!")
+
+@dp.callback_query(F.data.startswith("reject_"))
+async def reject_ad_admin(callback: types.CallbackQuery):
+    user_id = int(callback.data.split("_")[1])
+    await bot.send_message(user_id, "❌ Reklamangiz admin tomonidan rad etildi.")
+    await callback.message.edit_caption(caption="❌ Reklama rad etildi.")
+    if user_id in ad_requests: del ad_requests[user_id]
+    await callback.answer("Rad etildi!")
+
+@dp.callback_query(F.data == "confirm_ad_admin")
+async def confirm_ad_admin(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer("🚀 Reklama tarqatildi!")
     await callback.answer("Muvaffaqiyatli!")
+    await state.clear()
+
+    # Hamkorlar ro'yxati (agar hali yo'q bo'lsa, kodning tepasiga qo'shing)
+hamkorlar = {} 
+
+@dp.message(F.text == "👥 Sotuvchilar ro'yxati")
+async def show_sellers_list(message: types.Message):
+    if message.chat.id != ADMIN_ID:
+        return
+    
+    # Agar hamkorlar ro'yxati bo'sh bo'lsa
+    if not hamkorlar:
+        await message.answer("🚫 Hamkor do'konlar hali mavjud emas.")
+    else:
+        # Agar hamkorlar bo'lsa, ularni ro'yxat qilib chiqarish
+        text = "🏢 <b>Mavjud hamkor do'konlar:</b>\n\n"
+        for name, info in hamkorlar.items():
+            text += f"🔹 <b>{name}</b> - {info['status']}\n"
+        await message.answer(text, parse_mode="HTML")
 
 # --- ORIGINAL FUNKSIYALAR ---
 def get_customer_keyboard(is_admin=False):
@@ -247,7 +276,7 @@ async def show_admin_statistics(message: types.Message):
         )
         await message.answer(stat_text, parse_mode="HTML", reply_markup=get_admin_keyboard())
 
-@dp.message(F.text == "Xaridor rejimiga o'tish")
+@dp.message(F.text == "🛍 Xaridor rejimiga o'tish")
 async def admin_to_customer(message: types.Message, state: FSMContext):
     await show_customer_menu(message, state)
 
@@ -256,7 +285,7 @@ async def show_customer_menu(message: types.Message, state: FSMContext):
     await message.answer("✨ Bo'limni tanlang:", reply_markup=get_customer_keyboard(is_admin))
     await state.set_state(ShoppingState.category)
 
-@dp.message(F.text == "Direktor paneliga qaytish")
+@dp.message(F.text == "👑 Direktor paneliga qaytish")
 async def back_to_admin_panel(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("👑 Direktor paneliga qaytdingiz!", reply_markup=get_admin_keyboard())
