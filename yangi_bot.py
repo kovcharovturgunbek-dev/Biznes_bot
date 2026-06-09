@@ -12,7 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # 1. SOZLAMALAR
 import os
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("8521448875:AAEnQ2tSUmiU6zWtH3CqUTEOM5BbZDT0tH4")
 ADMIN_ID = 8727214154
 CHIEF_CARD = "8600 1234 5678 9012"
 bot = Bot(token=TOKEN)
