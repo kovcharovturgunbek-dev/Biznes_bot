@@ -13,13 +13,13 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # 1. SOZLAMALAR
 TOKEN = "8521448875:AAGWrgq6TGYjrsSnoXMuMzv8tGEbrCUJOks"
 ADMIN_ID = 8727214154
-
 CHIEF_CARD = "8600 1234 5678 9012"
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 ad_requests = {}
 pending_products = {}
+hamkorlar = {} 
 
 # --- KLAVIATURALARNI YARATISH ---
 def get_admin_keyboard():
@@ -72,7 +72,6 @@ def check_content_safety(text):
 @dp.message(F.text == "📥 Yangi mahsulotlar (AI)")
 async def show_new_products(message: types.Message):
     if message.chat.id != ADMIN_ID: return
-    
     if not pending_products:
         await message.answer("📥 Hozircha tasdiqlash uchun yangi mahsulotlar yo'q.")
     else:
@@ -91,7 +90,6 @@ async def show_new_products(message: types.Message):
 async def enter_ad_management(message: types.Message):
     if message.chat.id != ADMIN_ID: return
     await message.answer("🛠 Reklama boshqaruviga o'tdingiz. Arizalar ro'yxati:", reply_markup=get_admin_ad_keyboard())
-    
     if not ad_requests:
         await message.answer("📋 Hozircha yangi reklama arizalari yo'q.")
     else:
@@ -129,9 +127,7 @@ async def process_ad_text(message: types.Message, state: FSMContext):
     if violations:
         await message.answer(f"❌ Taqiqlangan so'zlar bor: {', '.join(violations)}")
         return
-    
     await state.update_data(ad_text=text, photo=message.photo[-1].file_id if message.photo else None)
-    
     if message.chat.id == ADMIN_ID:
         await message.answer("✅ Direktor, reklama tayyor. Barchaga tarqatilsinmi?", 
                              reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🚀 Tasdiqlash", callback_data="confirm_ad_admin")]]))
@@ -151,7 +147,7 @@ async def handle_payment(message: types.Message, state: FSMContext):
 async def approve_ad_admin(callback: types.CallbackQuery):
     user_id = int(callback.data.split("_")[1])
     await bot.send_message(user_id, "🎉 Tabriklaymiz! Reklamangiz tasdiqlandi va tarqatildi.")
-    await callback.message.edit_caption(caption="✅ Reklama tasdiqlandi!")
+    await callback.message.edit_caption(caption="✅ Reklama tasdiqladi!")
     if user_id in ad_requests: del ad_requests[user_id]
     await callback.answer("Tarqatildi!")
 
@@ -170,19 +166,12 @@ async def confirm_ad_admin(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer("Muvaffaqiyatli!")
     await state.clear()
 
-    # Hamkorlar ro'yxati (agar hali yo'q bo'lsa, kodning tepasiga qo'shing)
-hamkorlar = {} 
-
 @dp.message(F.text == "👥 Sotuvchilar ro'yxati")
 async def show_sellers_list(message: types.Message):
-    if message.chat.id != ADMIN_ID:
-        return
-    
-    # Agar hamkorlar ro'yxati bo'sh bo'lsa
+    if message.chat.id != ADMIN_ID: return
     if not hamkorlar:
         await message.answer("🚫 Hamkor do'konlar hali mavjud emas.")
     else:
-        # Agar hamkorlar bo'lsa, ularni ro'yxat qilib chiqarish
         text = "🏢 <b>Mavjud hamkor do'konlar:</b>\n\n"
         for name, info in hamkorlar.items():
             text += f"🔹 <b>{name}</b> - {info['status']}\n"
@@ -194,8 +183,7 @@ def get_customer_keyboard(is_admin=False):
         [types.KeyboardButton(text="👕 Ustki kiyimlar"), types.KeyboardButton(text="👖 Shim va shortilar")],
         [types.KeyboardButton(text="🩲 Ichki kiyimlar"), types.KeyboardButton(text="👟 Oyoq kiyimlar")]
     ]
-    if is_admin:
-        keyboard_buttons.append([types.KeyboardButton(text="👑 Direktor paneliga qaytish")])
+    if is_admin: keyboard_buttons.append([types.KeyboardButton(text="👑 Direktor paneliga qaytish")])
     return types.ReplyKeyboardMarkup(keyboard=keyboard_buttons, resize_keyboard=True)
 
 def get_gender_keyboard():
