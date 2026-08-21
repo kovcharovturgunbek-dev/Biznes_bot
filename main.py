@@ -5,15 +5,11 @@ from aiogram import Bot, Dispatcher
 from fastapi import FastAPI
 import uvicorn
 
-from app.cache.redis import close_redis
-from app.core.logging import setup_logging
-from app.core.config import settings
+from ilova.cache.redis import close_redis
+from ilova.core.logging import setup_logging
+from ilova.core.config import settings
 
-# Barcha handler va routerlaringizni shu yerga import qilasiz
-# (Masalan, app/bot/handlers.py yoki shunga o'xshash fayldan)
-from app.bot.handlers import main_router  # Agar fayl nomi yoki joyi boshqacha bo'lsa, moslaysiz
-
-# Render port talab qilgani uchun FastAPI ilovasini ochamiz
+# FastAPI ilovasi (Render port talab qilgani uchun)
 app_web = FastAPI()
 
 @app_web.get("/")
@@ -29,9 +25,6 @@ async def asosiy() -> None:
 
     bot = Bot(token=settings.bot_token)
     dp = Dispatcher()
-
-    # Routerlarni Dispatcher'ga ulaymiz
-    dp.include_router(main_router)
 
     try:
         await dp.start_polling(bot)
