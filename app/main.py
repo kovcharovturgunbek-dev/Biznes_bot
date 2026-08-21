@@ -9,6 +9,9 @@ from app.cache.redis import close_redis
 from app.core.logging import setup_logging
 from app.core.config import settings
 
+# Routerlaringizni shu yerga import qilasiz (misol uchun):
+# from app.handlers import main_router  # yoki routers papkasidan
+
 # FastAPI ilovasi
 app_web = FastAPI()
 
@@ -26,6 +29,10 @@ async def asosiy() -> None:
 
     bot = Bot(token=settings.bot_token)
     dp = Dispatcher()
+
+    # --- ROUTERLARNI SHU YERGA ULAYSIZ ---
+    # Masalan:
+    # dp.include_router(main_router)
 
     try:
         await dp.start_polling(bot)
