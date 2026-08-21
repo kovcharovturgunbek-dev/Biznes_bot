@@ -9,8 +9,9 @@ from app.cache.redis import close_redis
 from app.core.logging import setup_logging
 from app.core.config import settings
 
-# Routerlaringiz bo'lsa, ularni shu yerga import qilasiz:
-# from app.handlers import main_router
+# Barcha handler va routerlaringizni shu yerga import qilasiz
+# (Masalan, app/bot/handlers.py yoki shunga o'xshash fayldan)
+from app.bot.handlers import main_router  # Agar fayl nomi yoki joyi boshqacha bo'lsa, moslaysiz
 
 # Render port talab qilgani uchun FastAPI ilovasini ochamiz
 app_web = FastAPI()
@@ -29,8 +30,8 @@ async def asosiy() -> None:
     bot = Bot(token=settings.bot_token)
     dp = Dispatcher()
 
-    # Routerlarni shu yerda ulaysiz (agar bo'lsa):
-    # dp.include_router(main_router)
+    # Routerlarni Dispatcher'ga ulaymiz
+    dp.include_router(main_router)
 
     try:
         await dp.start_polling(bot)
