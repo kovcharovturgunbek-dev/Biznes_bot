@@ -1,26 +1,24 @@
 import asyncio
-import threading
+import logging
 from aiogram import Bot, Dispatcher
 from fastapi import FastAPI
 import uvicorn
+import threading
 
 from app.cache.redis import close_redis
 from app.core.logging import setup_logging
 from app.core.config import settings
 
-# Render port talabini qondirish uchun kichik FastAPI server
+# FastAPI ilovasini yaratamiz
 app_web = FastAPI()
 
 @app_web.get("/")
 def root():
     return {"status": "Bot ishlayapti!"}
 
-def run_web():
-    uvicorn.run(app_web, host="0.0.0.0", port=10000)
-
-# Routerlaringizni shu yerga import qilasiz va ulaysiz:
-# Masalan: from app.routerlar import main_router
-
+def start_fastapi():
+    # Render talab qiladigan portni ochish
+    uvicorn.run(app_web, host="0.0.0.0", port=10000, log_level="warning")
 
 async def asosiy() -> None:
     setup_logging()
@@ -36,13 +34,15 @@ async def asosiy() -> None:
     finally:
         await bot.session.close()
         await close_redis()
-        # Ma'lumotlar bazasini yopish (agar funksiya bo'lsa):
-        # await ma'lumotlar_bazasini_yopish()
 
 
 if __name__ == "__main__":
-    # Veb serverni alohida oqimda ishga tushiramiz (Render portni ko'rishi uchun)
-    threading.Thread(target=run_web, daemon=True).start()
-    
-    # Telegram botni ishga tushiramiz
-    asyncio.run(asosiy())
+    # 1. Oldin veb-serverni alohida oqimda (thread) ishga tushiramiz (portni darhol band qiladi)
+    server_thread = threading.Thread(target=start_fastapi, daemon=True)
+    server_thread.start()
+
+    # 2. Keyin telegram botni ishga tushiramiz
+    try:
+        asyncio.run(asosiy())
+    except KeyboardInterrupt:
+        pass
