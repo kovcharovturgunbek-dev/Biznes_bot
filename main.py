@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher
 
 from app.cache.redis import close_redis
 from app.core.logging import setup_logging
-from app.yadro.konfiguratsiya import sozlamalar
+from app.core.konfiguratsiya import sozlamalar
 
 # Routerlaringizni shu yerga import qilasiz va ulaysiz:
 # Masalan: from app.routerlar import main_router
