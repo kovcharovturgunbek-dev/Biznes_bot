@@ -1,4 +1,0 @@
-aiogram==3.13.1
-pydantic==2.8.2
-apscheduler==3.10.4
-Flask==3.0.0
