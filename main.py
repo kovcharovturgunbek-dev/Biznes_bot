@@ -9,10 +9,10 @@ from app.cache.redis import close_redis
 from app.core.logging import setup_logging
 from app.core.config import settings
 
-# Agar routerlaringiz bo'lsa, ularni shu yerga import qilasiz:
-# from app.bot.handlers import main_router  # Misol uchun
+# Routerlaringiz bo'lsa, ularni shu yerga import qilasiz:
+# from app.handlers import main_router
 
-# FastAPI ilovasi (Render portni band qilishi uchun shart)
+# Render port talab qilgani uchun FastAPI ilovasini ochamiz
 app_web = FastAPI()
 
 @app_web.get("/")
@@ -29,7 +29,7 @@ async def asosiy() -> None:
     bot = Bot(token=settings.bot_token)
     dp = Dispatcher()
 
-    # Routerlarni shu yerda ulaysiz:
+    # Routerlarni shu yerda ulaysiz (agar bo'lsa):
     # dp.include_router(main_router)
 
     try:
@@ -39,7 +39,7 @@ async def asosiy() -> None:
         await close_redis()
 
 if __name__ == "__main__":
-    # Veb serverni alohida oqimda ishga tushiramiz
+    # Veb serverni alohida oqimda ishga tushiramiz (Render uchun)
     server_thread = threading.Thread(target=start_fastapi, daemon=True)
     server_thread.start()
 
