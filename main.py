@@ -8,8 +8,8 @@ import uvicorn
 from app.cache.redis import close_redis
 from app.core.logging import setup_logging
 from app.core.config import settings
+from app.handlers import router as main_router  # Routerimizni ulaymiz
 
-# FastAPI ilovasi (Render port talab qilgani uchun)
 app_web = FastAPI()
 
 @app_web.get("/")
@@ -26,6 +26,9 @@ async def asosiy() -> None:
     bot = Bot(token=settings.bot_token)
     dp = Dispatcher()
 
+    # Routerlarni Dispatcher'ga ulaymiz
+    dp.include_router(main_router)
+
     try:
         await dp.start_polling(bot)
     finally:
@@ -33,11 +36,9 @@ async def asosiy() -> None:
         await close_redis()
 
 if __name__ == "__main__":
-    # Veb serverni alohida oqimda ishga tushiramiz (Render uchun)
     server_thread = threading.Thread(target=start_fastapi, daemon=True)
     server_thread.start()
 
-    # Telegram botni ishga tushiramiz
     try:
         asyncio.run(asosiy())
     except KeyboardInterrupt:
