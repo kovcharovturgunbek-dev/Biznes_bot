@@ -9,10 +9,10 @@ from app.cache.redis import close_redis
 from app.core.logging import setup_logging
 from app.core.config import settings
 
-# Routerlaringizni shu yerga import qilasiz (misol uchun):
-# from app.handlers import main_router  # yoki routers papkasidan
+# Routerlaringiz bo'lsa, ularni shu yerga import qilasiz:
+# from app.handlers import main_router
 
-# FastAPI ilovasi
+# Render port talab qilgani uchun FastAPI ilovasini ochamiz
 app_web = FastAPI()
 
 @app_web.get("/")
@@ -20,7 +20,6 @@ def root():
     return {"status": "Bot ishlayapti!"}
 
 def start_fastapi():
-    # Render o'zi beradigan PORT ni oladi (agar topolmasa 10000 ni oladi)
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app_web, host="0.0.0.0", port=port, log_level="warning")
 
@@ -30,8 +29,7 @@ async def asosiy() -> None:
     bot = Bot(token=settings.bot_token)
     dp = Dispatcher()
 
-    # --- ROUTERLARNI SHU YERGA ULAYSIZ ---
-    # Masalan:
+    # Routerlarni shu yerda ulaysiz (agar bo'lsa):
     # dp.include_router(main_router)
 
     try:
@@ -41,7 +39,7 @@ async def asosiy() -> None:
         await close_redis()
 
 if __name__ == "__main__":
-    # Veb serverni alohida oqimda ishga tushiramiz
+    # Veb serverni alohida oqimda ishga tushiramiz (Render uchun)
     server_thread = threading.Thread(target=start_fastapi, daemon=True)
     server_thread.start()
 
