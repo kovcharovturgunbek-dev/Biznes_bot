@@ -5,9 +5,9 @@ from aiogram import Bot, Dispatcher
 from fastapi import FastAPI
 import uvicorn
 
-from ilova.cache.redis import close_redis
-from ilova.core.logging import setup_logging
-from ilova.core.config import settings
+from app.cache.redis import close_redis
+from app.core.logging import setup_logging
+from app.core.config import settings
 
 # FastAPI ilovasi (Render port talab qilgani uchun)
 app_web = FastAPI()
