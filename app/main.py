@@ -12,7 +12,7 @@ from app.core.config import settings
 async def asosiy() -> None:
     setup_logging()
 
-    bot = Bot(token=sozlamalar.bot_token)
+    bot = Bot(token=settings.bot_token)
     dp = Dispatcher()
 
     # Routerlarni ulash:
