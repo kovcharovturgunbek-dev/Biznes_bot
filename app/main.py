@@ -1,26 +1,31 @@
 import asyncio
-
 from aiogram import Bot, Dispatcher
 
-from app.cache.redis import close_redis
-from app.core.config import settings
-from app.core.logging import setup_logging
-from app.db.session import close_database
+from ilova.kesh.redis import close_redis
+from ilova.yadro.konfiguratsiya import sozlamalar
+from ilova.yadro.yog'och_kesish import sozlash_jurnali
+from ilova.ma'lumotlar_bazasi.sessiya import ma'lumotlar_bazasini_yopish
+
+# Routerlaringizni shu yerga import qilasiz va ulaysiz:
+# Masalan: from ilova.routerlar import main_router
 
 
-async def main() -> None:
-    setup_logging()
+async def asosiy() -> None:
+    sozlash_jurnali()
 
-    bot = Bot(token=settings.bot_token)
+    bot = Bot(token=sozlamalar.bot_token)
     dp = Dispatcher()
+
+    # Routerlarni ulash:
+    # dp.include_router(main_router)
 
     try:
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
         await close_redis()
-        await close_database()
+        await ma'lumotlar_bazasini_yopish()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(asosiy())
