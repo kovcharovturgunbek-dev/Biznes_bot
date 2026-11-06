@@ -1,5 +1,4 @@
 from functools import lru_cache
-
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -17,14 +16,10 @@ class Settings(BaseSettings):
     debug: bool = False
 
     bot_token: str = Field(..., min_length=1)
-
     database_url: str = Field(..., min_length=1)
     redis_url: str = Field(..., min_length=1)
-
     secret_key: str = Field(..., min_length=32)
-
     director_telegram_id: int
-
     app_timezone: str = "Asia/Tashkent"
 
 
