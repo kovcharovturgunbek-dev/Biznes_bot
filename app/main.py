@@ -48,7 +48,7 @@ async def asosiy() -> None:
         await close_database()
 
 
-if name == "main":
+if __name__ == "__main__":
     server_thread = threading.Thread(
         target=start_fastapi,
         daemon=True,
