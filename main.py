@@ -1,24 +1,29 @@
 import asyncio
 import os
 import threading
+
+import uvicorn
 from aiogram import Bot, Dispatcher
 from fastapi import FastAPI
-import uvicorn
 
 from app.cache.redis import close_redis
-from app.core.logging import setup_logging
 from app.core.config import settings
+from app.core.logging import setup_logging
+from app.db.session import close_database
 from app.handlers import router as main_router  # Routerimizni ulaymiz
 
 app_web = FastAPI()
+
 
 @app_web.get("/")
 def root():
     return {"status": "Bot ishlayapti!"}
 
+
 def start_fastapi():
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app_web, host="0.0.0.0", port=port, log_level="warning")
+
 
 async def asosiy() -> None:
     setup_logging()
@@ -34,6 +39,8 @@ async def asosiy() -> None:
     finally:
         await bot.session.close()
         await close_redis()
+        await close_database()
+
 
 if __name__ == "__main__":
     server_thread = threading.Thread(target=start_fastapi, daemon=True)
