@@ -1,4 +1,5 @@
 import logging
+import sys
 
 
 def setup_logging() -> None:
@@ -10,4 +11,7 @@ def setup_logging() -> None:
             "%(name)s | "
             "%(message)s"
         ),
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ],
     )
