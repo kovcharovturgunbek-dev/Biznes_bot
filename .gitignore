@@ -1,12 +1,42 @@
+# Environment and secrets
 .env
+.env.*
+!.env.example
+
+# Python virtual environment
 .venv/
-__pycache__/
+venv/
+env/
+
+# Python cache
+pycache/
 *.py[cod]
+*$py.class
+
+# Test and lint cache
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.coverage
+htmlcov/
+
+# IDE
 .idea/
 .vscode/
+
+# Build files
 dist/
 build/
 *.egg-info/
+
+# Logs
+*.log
+logs/
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
