@@ -21,14 +21,12 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from app.db.base import Base
 
 
 # =========================================================
 # 1. ASOSIY BAZA
 # =========================================================
-
-class Base(DeclarativeBase):
-    pass
 
 
 def enum_column(enum_class: type[Enum], name: str):
