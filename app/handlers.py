@@ -4,6 +4,7 @@ from aiogram.types import Message
 
 router = Router()
 
+
 @router.message(CommandStart())
-async def cmd_start(message: Message):
+async def cmd_start(message: Message) -> None:
     await message.answer("Assalomu alaykum! Biznes botimiz ishga tushdi 🚀")
